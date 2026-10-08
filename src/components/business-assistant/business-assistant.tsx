@@ -78,18 +78,13 @@ export function BusinessAssistant() {
               <BriefcaseBusiness aria-hidden="true" className="size-5" />
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-foreground sm:text-base">Welcome</p>
-              <p className="hidden text-xs text-muted-foreground sm:block">
-                What are we working on today?
+              <p className="truncate text-sm font-semibold text-foreground sm:text-base">
+                Marque AI
               </p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-3">
             <ThemeToggle />
-            <div className="hidden items-center gap-2 border-l border-border pl-5 text-xs text-muted-foreground md:flex">
-              <span className="size-2 rounded-full bg-emerald-500" aria-hidden="true" />
-              Workspace ready
-            </div>
           </div>
         </div>
       </header>
@@ -101,6 +96,14 @@ export function BusinessAssistant() {
             aria-hidden="true"
           />
           <div className="relative flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+            <div className="max-w-2xl">
+              <h1 className="text-2xl font-semibold leading-tight text-foreground sm:text-3xl">
+                Welcome
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                What are we working on today?
+              </p>
+            </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Clock3 aria-hidden="true" className="size-4" />
               <span>Start with a request</span>
@@ -260,8 +263,7 @@ export function BusinessAssistant() {
 
         <footer className="flex flex-col gap-2 border-t border-border py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>
-            AI Business Assistance <span className="px-1.5 text-border">/</span> Make every message
-            count.
+            Marque AI <span className="px-1.5 text-border">/</span> Make every message count.
           </p>
           <p className="inline-flex items-center gap-1.5">
             <Check aria-hidden="true" className="size-3.5 text-emerald-600" /> Your drafts stay in

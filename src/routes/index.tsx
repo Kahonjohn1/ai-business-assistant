@@ -5,7 +5,7 @@ import { BusinessAssistant } from "@/components/business-assistant/business-assi
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "AI Business Assistance — Business writing workspace" },
+      { title: "Marque AI" },
       {
         name: "description",
         content:
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:title",
-        content: "AI Business Assistance — Business writing workspace",
+        content: "Marque AI",
       },
       {
         property: "og:description",
