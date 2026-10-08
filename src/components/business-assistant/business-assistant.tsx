@@ -22,6 +22,7 @@ import {
 import { assistProvider, TASK_TYPES, TONES, type TaskType, type Tone } from "@/lib/assist";
 import { AttachmentUploader } from "./attachment-uploader";
 import { ResponsePanel } from "./response-panel";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function BusinessAssistant() {
   const [request, setRequest] = useState("");
@@ -85,9 +86,12 @@ export function BusinessAssistant() {
               </p>
             </div>
           </div>
-          <div className="hidden items-center gap-2 border-l border-border pl-5 text-xs text-muted-foreground md:flex">
-            <span className="size-2 rounded-full bg-emerald-500" aria-hidden="true" />
-            Workspace ready
+          <div className="flex shrink-0 items-center gap-3">
+            <ThemeToggle />
+            <div className="hidden items-center gap-2 border-l border-border pl-5 text-xs text-muted-foreground md:flex">
+              <span className="size-2 rounded-full bg-emerald-500" aria-hidden="true" />
+              Workspace ready
+            </div>
           </div>
         </div>
       </header>
