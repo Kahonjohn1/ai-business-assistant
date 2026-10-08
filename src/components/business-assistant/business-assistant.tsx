@@ -78,11 +78,9 @@ export function BusinessAssistant() {
               <BriefcaseBusiness aria-hidden="true" className="size-5" />
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-foreground sm:text-base">
-                AI Business Assistance
-              </p>
+              <p className="truncate text-sm font-semibold text-foreground sm:text-base">Welcome</p>
               <p className="hidden text-xs text-muted-foreground sm:block">
-                Your assistant for everyday business communication and productivity.
+                What are we working on today?
               </p>
             </div>
           </div>
@@ -103,18 +101,6 @@ export function BusinessAssistant() {
             aria-hidden="true"
           />
           <div className="relative flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
-            <div className="max-w-2xl">
-              <div className="mb-3 inline-flex items-center gap-2 text-xs font-semibold uppercase text-primary">
-                <Sparkles aria-hidden="true" className="size-3.5" />
-                Your business workspace
-              </div>
-              <h1 className="text-2xl font-semibold leading-tight text-foreground sm:text-3xl">
-                Your workday, well worded.
-              </h1>
-              <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                Create thoughtful business communication and get your next task in order.
-              </p>
-            </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Clock3 aria-hidden="true" className="size-4" />
               <span>Start with a request</span>
