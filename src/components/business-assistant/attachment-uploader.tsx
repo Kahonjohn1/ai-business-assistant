@@ -71,7 +71,17 @@ export function AttachmentUploader({ files, onFilesChange }: AttachmentUploaderP
             Add documents or images relevant to your request.
           </p>
         </div>
-        <Paperclip aria-hidden="true" className="mt-0.5 size-4 text-muted-foreground" />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Choose attachments"
+          title="Attach a file"
+          className="mt-0.5"
+          onClick={() => inputRef.current?.click()}
+        >
+          <Paperclip aria-hidden="true" className="size-4 text-muted-foreground" />
+        </Button>
       </div>
       <input
         ref={inputRef}
