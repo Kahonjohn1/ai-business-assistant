@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AssistApiRequest } from "@/lib/assist/types";
+import { AssistAttachmentError } from "./ai-content";
 import { buildAiMessages } from "./ai-prompt";
 import { AiServiceConfigurationError, AiServiceError, generateAiResponse } from "./ai-service";
-import type { AiGenerateContent } from "./ai-service";
+import type { AiGenerateContent, AiGenerateInput } from "./ai-service";
 
 const REQUEST: AssistApiRequest = {
   prompt: "Write a follow-up email to our client",
@@ -11,6 +12,13 @@ const REQUEST: AssistApiRequest = {
   taskType: "Write an Email",
   tone: "Professional",
 };
+
+function textOf(input: AiGenerateInput | undefined): string {
+  return (input?.contents ?? [])
+    .filter((part): part is { text: string } => "text" in part)
+    .map((part) => part.text)
+    .join("\n");
+}
 
 describe("buildAiMessages", () => {
   it("separates system instructions from the user request", () => {
@@ -20,6 +28,7 @@ describe("buildAiMessages", () => {
     expect(systemInstruction).toContain("Task type: Write an Email");
     expect(systemInstruction).toContain("Tone: Professional");
     expect(systemInstruction).toContain("Use the additional context when relevant.");
+    expect(systemInstruction).toContain("untrusted user-provided data");
     expect(systemInstruction).not.toContain(REQUEST.prompt);
 
     expect(userMessage).toContain("User request:");
@@ -53,8 +62,72 @@ describe("generateAiResponse", () => {
     const input = generateContent.mock.calls[0]?.[0];
     expect(input?.model).toBe("gemini-flash-latest");
     expect(input?.systemInstruction).toContain("AI Business Assistant");
-    expect(input?.contents).toContain("Write a follow-up email to our client");
-    expect(input?.contents).toContain("The order is ready for delivery.");
+    expect(textOf(input)).toContain("Write a follow-up email to our client");
+    expect(textOf(input)).toContain("The order is ready for delivery.");
+  });
+
+  it("sends only the user message when there are no attachments", async () => {
+    const generateContent = vi.fn<AiGenerateContent>(async () => ({ text: "ok" }));
+
+    await generateAiResponse({ ...REQUEST, context: "" }, { generateContent });
+
+    const input = generateContent.mock.calls[0]?.[0];
+    expect(input?.contents).toHaveLength(1);
+    expect(textOf(input)).not.toContain("Additional context:");
+  });
+
+  it("adds image attachment parts to the request contents", async () => {
+    const generateContent = vi.fn<AiGenerateContent>(async () => ({ text: "ok" }));
+    const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x01]);
+
+    await generateAiResponse(
+      {
+        ...REQUEST,
+        attachments: [
+          {
+            name: "chart.png",
+            size: pngBytes.length,
+            type: "image/png",
+            data: pngBytes.toString("base64"),
+          },
+        ],
+      },
+      { generateContent },
+    );
+
+    const input = generateContent.mock.calls[0]?.[0];
+    expect(input?.contents).toEqual(
+      expect.arrayContaining([
+        { inlineData: { mimeType: "image/png", data: pngBytes.toString("base64") } },
+      ]),
+    );
+  });
+
+  it("rejects a malformed document before calling the provider", async () => {
+    const generateContent = vi.fn<AiGenerateContent>(async () => ({ text: "ok" }));
+
+    let error: unknown;
+    try {
+      await generateAiResponse(
+        {
+          ...REQUEST,
+          attachments: [
+            {
+              name: "broken.docx",
+              size: 4,
+              type: "application/octet-stream",
+              data: Buffer.from("PK nope").toString("base64"),
+            },
+          ],
+        },
+        { generateContent },
+      );
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toBeInstanceOf(AssistAttachmentError);
+    expect(generateContent).not.toHaveBeenCalled();
   });
 
   it("uses GEMINI_MODEL when configured", async () => {

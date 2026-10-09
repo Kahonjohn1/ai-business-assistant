@@ -1,4 +1,5 @@
 import { parseAssistApiRequest } from "@/lib/assist/validation";
+import { AssistAttachmentError } from "./ai/ai-content";
 import { generateAiResponse } from "./ai/ai-service";
 import type { AiServiceDependencies } from "./ai/ai-service";
 
@@ -34,6 +35,9 @@ export async function handleAssistApiRequest(
     const result = await generateAiResponse(parsed.value, dependencies);
     return jsonResponse(200, { response: result });
   } catch (error) {
+    if (error instanceof AssistAttachmentError) {
+      return jsonResponse(400, { error: error.message });
+    }
     console.error("Assist endpoint failed:", error);
     return jsonResponse(500, { error: "Unable to generate a response right now." });
   }

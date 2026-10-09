@@ -4,9 +4,15 @@ A React and TanStack Start workspace for business communication and productivity
 
 ## Current scope
 
-The current version is a frontend UI shell with mock AI responses. It supports business requests, additional context, task type and tone selection, file/image attachments, validation, loading states, response copying, and clearing.
+The app supports business requests, optional additional context, task type and tone selection, and optional document/image attachments. Requests are sent to `POST /api/assist`, which validates them and calls Gemini server-side.
 
-The real AI API integration will be added later.
+- **Attachments**: PDF, DOCX, XLSX, TXT, PNG, JPG/JPEG. Up to 5 files, 20 MB each, 30 MB total.
+- **Analysis**: images and PDFs are sent to Gemini as inline data; DOCX/XLSX text is extracted server-side; TXT is read directly.
+- Attachment content is treated as untrusted reference data and cannot override the system instructions.
+
+API credentials live only in environment variables (see `.env.example`). The browser never receives them.
+
+A `MockAssistProvider` remains available (see `src/lib/assist/index.ts`) for tests and offline use.
 
 ## Development
 

@@ -10,6 +10,10 @@ const VALID_BODY = {
   tone: "Professional",
 };
 
+function base64(content: string): string {
+  return Buffer.from(content, "utf8").toString("base64");
+}
+
 function post(body: unknown): Request {
   return new Request("http://localhost/api/assist", {
     method: "POST",
@@ -46,11 +50,48 @@ describe("handleAssistApiRequest", () => {
     vi.unstubAllEnvs();
   });
 
-  it("returns the AI response for a valid request", async () => {
+  it("returns the AI response for a request with context and no attachments", async () => {
     const response = await handleAssistApiRequest(post(VALID_BODY), fakeDependencies());
     expect(response.status).toBe(200);
     const body = (await response.json()) as { response: string };
     expect(body).toEqual({ response: "Generated draft" });
+  });
+
+  it("accepts a request with no context and no attachments", async () => {
+    const response = await handleAssistApiRequest(
+      post({ ...VALID_BODY, context: "" }),
+      fakeDependencies(),
+    );
+    expect(response.status).toBe(200);
+  });
+
+  it("accepts a request with attachments but no context", async () => {
+    const response = await handleAssistApiRequest(
+      post({
+        ...VALID_BODY,
+        context: "",
+        attachments: [{ name: "notes.txt", size: 2, type: "text/plain", data: base64("hi") }],
+      }),
+      fakeDependencies(),
+    );
+    expect(response.status).toBe(200);
+  });
+
+  it("accepts multiple valid attachments", async () => {
+    const response = await handleAssistApiRequest(
+      post({
+        prompt: "Review these",
+        context: "",
+        taskType: "Summarize Information",
+        tone: "Concise",
+        attachments: [
+          { name: "notes.txt", size: 2, type: "text/plain", data: base64("hi") },
+          { name: "orders.txt", size: 2, type: "text/plain", data: base64("yo") },
+        ],
+      }),
+      fakeDependencies(),
+    );
+    expect(response.status).toBe(200);
   });
 
   it("returns 400 when the prompt is missing", async () => {
@@ -107,7 +148,7 @@ describe("handleAssistApiRequest", () => {
     expect(body.error).toBe("Request body must be valid JSON.");
   });
 
-  it("accepts valid attachment metadata", async () => {
+  it("returns 400 for an unsupported file type", async () => {
     const response = await handleAssistApiRequest(
       post({
         prompt: "Review this",
@@ -115,13 +156,28 @@ describe("handleAssistApiRequest", () => {
         taskType: "Summarize Information",
         tone: "Concise",
         attachments: [
-          { name: "notes.txt", size: 12, type: "text/plain" },
-          { name: "orders.csv", size: 2048, type: "text/csv" },
+          { name: "script.exe", size: 4, type: "application/octet-stream", data: base64("MZ..") },
         ],
       }),
-      fakeDependencies(),
     );
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).toContain("isn’t a supported file type");
+  });
+
+  it("returns 400 for malformed base64 content", async () => {
+    const response = await handleAssistApiRequest(
+      post({
+        prompt: "Review this",
+        context: "",
+        taskType: "Summarize Information",
+        tone: "Concise",
+        attachments: [{ name: "notes.txt", size: 4, type: "text/plain", data: "not base64!!" }],
+      }),
+    );
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).toContain("could not be read");
   });
 
   it("returns 400 for invalid attachment metadata", async () => {
@@ -137,6 +193,29 @@ describe("handleAssistApiRequest", () => {
     expect(response.status).toBe(400);
     const body = (await response.json()) as { error: string };
     expect(body.error).toContain("attachment");
+  });
+
+  it("returns 400 with a clear message for a malformed document", async () => {
+    const response = await handleAssistApiRequest(
+      post({
+        prompt: "Summarize this file",
+        context: "",
+        taskType: "Summarize Information",
+        tone: "Concise",
+        attachments: [
+          {
+            name: "broken.docx",
+            size: 6,
+            type: "application/octet-stream",
+            data: base64("PK nope"),
+          },
+        ],
+      }),
+      fakeDependencies(),
+    );
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).toContain("broken.docx");
   });
 
   it("returns 500 with a safe message when the AI provider fails", async () => {

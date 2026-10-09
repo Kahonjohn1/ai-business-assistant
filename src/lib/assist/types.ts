@@ -22,10 +22,16 @@ export interface AssistRequest {
   files: File[];
 }
 
-export interface AttachmentMetadata {
+/**
+ * An attachment travelling to the server. `data` holds the base64-encoded file
+ * contents so the AI can analyze the actual document or image, not just its
+ * metadata. `size` is the decoded byte length.
+ */
+export interface AssistApiAttachment {
   name: string;
   size: number;
   type: string;
+  data: string;
 }
 
 export interface AssistApiRequest {
@@ -33,5 +39,5 @@ export interface AssistApiRequest {
   context: string;
   taskType: TaskType;
   tone: Tone;
-  attachments?: AttachmentMetadata[];
+  attachments?: AssistApiAttachment[];
 }

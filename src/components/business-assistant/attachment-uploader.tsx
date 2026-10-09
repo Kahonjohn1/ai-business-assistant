@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { FileSpreadsheet, FileText, Paperclip, Upload, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { ACCEPTED_EXTENSIONS, formatFileSize, validateFile } from "./attachment-utils";
+import { ACCEPT_ATTRIBUTE, MAX_FILES, MAX_TOTAL_SIZE } from "@/lib/assist/attachments";
+import { formatFileSize, validateFile } from "./attachment-utils";
 
 interface AttachmentUploaderProps {
   files: File[];
@@ -46,14 +47,22 @@ export function AttachmentUploader({ files, onFilesChange }: AttachmentUploaderP
   const addFiles = (incoming: FileList | File[]) => {
     const accepted: File[] = [];
     let firstError = "";
+    let count = files.length;
+    let totalSize = files.reduce((sum, file) => sum + file.size, 0);
     Array.from(incoming).forEach((file) => {
       const validation = validateFile(file);
       if (validation) {
         firstError ||= validation;
+      } else if (count >= MAX_FILES) {
+        firstError ||= `You can attach up to ${MAX_FILES} files.`;
+      } else if (totalSize + file.size > MAX_TOTAL_SIZE) {
+        firstError ||= `Attachments must be ${Math.round(MAX_TOTAL_SIZE / (1024 * 1024))} MB or less in total.`;
       } else if (
         !files.some((existing) => existing.name === file.name && existing.size === file.size)
       ) {
         accepted.push(file);
+        count += 1;
+        totalSize += file.size;
       }
     });
     if (accepted.length) onFilesChange([...files, ...accepted]);
@@ -88,7 +97,7 @@ export function AttachmentUploader({ files, onFilesChange }: AttachmentUploaderP
         type="file"
         className="sr-only"
         multiple
-        accept={ACCEPTED_EXTENSIONS.map((extension) => `.${extension}`).join(",")}
+        accept={ACCEPT_ATTRIBUTE}
         aria-label="Choose attachments"
         onChange={(event) => {
           if (event.currentTarget.files) addFiles(event.currentTarget.files);
@@ -120,7 +129,7 @@ export function AttachmentUploader({ files, onFilesChange }: AttachmentUploaderP
           Drop files here or click to upload
         </span>
         <span className="text-xs text-muted-foreground">
-          PDF, DOCX, XLSX, TXT, PNG, JPG · Up to 20 MB each
+          PDF, DOCX, XLSX, TXT, PNG, JPG · Up to 20 MB each, {MAX_FILES} files, 30 MB total
         </span>
       </button>
       {error && (
@@ -129,7 +138,7 @@ export function AttachmentUploader({ files, onFilesChange }: AttachmentUploaderP
         </p>
       )}
       <p className="text-xs text-muted-foreground">
-        Files are attached for future processing; they are not analyzed yet.
+        Attachments are sent securely with your request and analyzed by the assistant.
       </p>
       {files.length > 0 && (
         <ul className="space-y-2" aria-label="Selected attachments">

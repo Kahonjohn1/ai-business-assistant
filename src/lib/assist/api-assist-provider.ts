@@ -1,5 +1,5 @@
 import type { AssistProvider } from "./assist-provider";
-import type { AssistApiRequest, AssistRequest } from "./types";
+import type { AssistApiAttachment, AssistApiRequest, AssistRequest } from "./types";
 
 const ASSIST_ENDPOINT = "/api/assist";
 
@@ -13,8 +13,23 @@ async function postAssistApi(payload: AssistApiRequest): Promise<Response> {
   });
 }
 
-function toAttachmentMetadata(file: File) {
-  return { name: file.name, size: file.size, type: file.type };
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error(`Could not read ${file.name}.`));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error(`Could not read ${file.name}.`));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function toAttachment(file: File): Promise<AssistApiAttachment> {
+  const dataUrl = await readFileAsDataUrl(file);
+  const separator = dataUrl.indexOf(",");
+  const data = separator >= 0 ? dataUrl.slice(separator + 1) : "";
+  return { name: file.name, size: file.size, type: file.type, data };
 }
 
 export class ApiAssistProvider implements AssistProvider {
@@ -28,7 +43,7 @@ export class ApiAssistProvider implements AssistProvider {
       tone: input.tone,
     };
     if (input.files.length > 0) {
-      payload.attachments = input.files.map(toAttachmentMetadata);
+      payload.attachments = await Promise.all(input.files.map(toAttachment));
     }
 
     const response = await this.callApi(payload);

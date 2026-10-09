@@ -1,13 +1,15 @@
 import { GoogleGenAI } from "@google/genai";
 
 import type { AssistApiRequest } from "@/lib/assist/types";
+import { buildAttachmentParts } from "./ai-content";
+import type { AiContentPart } from "./ai-content";
 import { buildAiMessages } from "./ai-prompt";
 
 export const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
 
 export interface AiGenerateInput {
   model: string;
-  contents: string;
+  contents: AiContentPart[];
   systemInstruction: string;
 }
 
@@ -57,13 +59,17 @@ export async function generateAiResponse(
   }
 
   const { systemInstruction, userMessage } = buildAiMessages(request);
+  const contents: AiContentPart[] = [
+    { text: userMessage },
+    ...buildAttachmentParts(request.attachments),
+  ];
   const generateContent = dependencies.generateContent ?? createDefaultGenerateContent(apiKey);
 
   let result: AiGenerateContentResult;
   try {
     result = await generateContent({
       model,
-      contents: userMessage,
+      contents,
       systemInstruction,
     });
   } catch (error) {

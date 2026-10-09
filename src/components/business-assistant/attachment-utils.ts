@@ -1,10 +1,17 @@
-export const MAX_FILE_SIZE = 20 * 1024 * 1024;
-export const ACCEPTED_EXTENSIONS = ["pdf", "docx", "xlsx", "txt", "png", "jpg", "jpeg"] as const;
+import {
+  ACCEPTED_EXTENSIONS,
+  getFileExtension,
+  isSupportedExtension,
+  MAX_FILE_SIZE,
+  SUPPORTED_FORMATS_LABEL,
+} from "@/lib/assist/attachments";
+
+export { ACCEPTED_EXTENSIONS, MAX_FILE_SIZE };
 
 export function validateFile(file: File) {
-  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
-  if (!ACCEPTED_EXTENSIONS.includes(extension as (typeof ACCEPTED_EXTENSIONS)[number])) {
-    return "That file type isn’t supported. Add a PDF, DOCX, XLSX, TXT, PNG, or JPG file.";
+  const extension = getFileExtension(file.name);
+  if (!isSupportedExtension(extension)) {
+    return `That file type isn’t supported. Add a ${SUPPORTED_FORMATS_LABEL} file.`;
   }
   if (file.size > MAX_FILE_SIZE) {
     return "This file is larger than 20 MB. Choose a smaller file to continue.";
