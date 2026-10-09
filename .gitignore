@@ -17,9 +17,18 @@ dist-ssr
 *.local
 
 # Environment files
-# `.env` holds real local secrets and must stay untracked;
+# Local env files hold real secrets and must stay untracked;
 # `.env.example` remains tracked as the safe, key-less template.
 .env
+.env.*
+!.env.example
+
+# Test / tooling output
+coverage
+.eslintcache
+
+# OS files
+Thumbs.db
 
 # Wrangler / Cloudflare
 .wrangler/
