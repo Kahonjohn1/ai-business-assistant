@@ -200,4 +200,148 @@ describe("generateAiResponse", () => {
     expect(error).toBeInstanceOf(AiServiceError);
     expect((error as Error).message).toBe("Gemini returned an empty response.");
   });
+
+  it("primary success does not call fallback", async () => {
+    const generateContent = vi.fn<AiGenerateContent>(async () => ({ text: "Primary response" }));
+    const generateContentFallback = vi.fn<AiGenerateContent>(async () => ({
+      text: "Fallback response",
+    }));
+
+    const result = await generateAiResponse(REQUEST, { generateContent, generateContentFallback });
+
+    expect(result).toBe("Primary response");
+    expect(generateContent).toHaveBeenCalledTimes(1);
+    expect(generateContentFallback).not.toHaveBeenCalled();
+  });
+
+  it("a primary 503 invokes fallback and returns successful response", async () => {
+    const error503 = new Error("Service unavailable");
+    (error503 as Error & { status?: number }).status = 503;
+    const generateContent = vi.fn<AiGenerateContent>(async () => {
+      throw error503;
+    });
+    const generateContentFallback = vi.fn<AiGenerateContent>(async () => ({ text: "Fallback OK" }));
+
+    const result = await generateAiResponse(REQUEST, { generateContent, generateContentFallback });
+
+    expect(result).toBe("Fallback OK");
+    expect(generateContent).toHaveBeenCalledTimes(1);
+    expect(generateContentFallback).toHaveBeenCalledTimes(1);
+    const fallbackInput = generateContentFallback.mock.calls[0]?.[0];
+    expect(fallbackInput?.model).toBe("gemini-2.5-flash-lite");
+  });
+
+  it("a primary 429 invokes fallback", async () => {
+    const error429 = new Error("Rate limited");
+    (error429 as Error & { status?: number }).status = 429;
+    const generateContent = vi.fn<AiGenerateContent>(async () => {
+      throw error429;
+    });
+    const generateContentFallback = vi.fn<AiGenerateContent>(async () => ({
+      text: "Fallback OK 429",
+    }));
+
+    const result = await generateAiResponse(REQUEST, { generateContent, generateContentFallback });
+
+    expect(result).toBe("Fallback OK 429");
+    expect(generateContent).toHaveBeenCalledTimes(1);
+    expect(generateContentFallback).toHaveBeenCalledTimes(1);
+  });
+
+  it("permanent errors do not invoke fallback (401)", async () => {
+    const error401 = new Error("Unauthorized");
+    (error401 as Error & { status?: number }).status = 401;
+    const generateContent = vi.fn<AiGenerateContent>(async () => {
+      throw error401;
+    });
+    const generateContentFallback = vi.fn<AiGenerateContent>(async () => ({ text: "Fallback" }));
+
+    let error: unknown;
+    try {
+      await generateAiResponse(REQUEST, { generateContent, generateContentFallback });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toBeInstanceOf(AiServiceError);
+    expect(generateContent).toHaveBeenCalledTimes(1);
+    expect(generateContentFallback).not.toHaveBeenCalled();
+  });
+
+  it("permanent errors do not invoke fallback (400)", async () => {
+    const error400 = new Error("Bad request");
+    (error400 as Error & { status?: number }).status = 400;
+    const generateContent = vi.fn<AiGenerateContent>(async () => {
+      throw error400;
+    });
+    const generateContentFallback = vi.fn<AiGenerateContent>(async () => ({ text: "Fallback" }));
+
+    let error: unknown;
+    try {
+      await generateAiResponse(REQUEST, { generateContent, generateContentFallback });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toBeInstanceOf(AiServiceError);
+    expect(generateContentFallback).not.toHaveBeenCalled();
+  });
+
+  it("fallback failure returns a safe error", async () => {
+    const error503 = new Error("Service unavailable");
+    (error503 as Error & { status?: number }).status = 503;
+    const generateContent = vi.fn<AiGenerateContent>(async () => {
+      throw error503;
+    });
+    const generateContentFallback = vi.fn<AiGenerateContent>(async () => {
+      throw new Error("Fallback also failed");
+    });
+
+    let error: unknown;
+    try {
+      await generateAiResponse(REQUEST, { generateContent, generateContentFallback });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toBeInstanceOf(AiServiceError);
+    expect((error as Error).message).toBe("Gemini request failed.");
+    expect(generateContent).toHaveBeenCalledTimes(1);
+    expect(generateContentFallback).toHaveBeenCalledTimes(1);
+  });
+
+  it("attachments and additional context are preserved during fallback", async () => {
+    const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x01]);
+    const error503 = new Error("Service unavailable");
+    (error503 as Error & { status?: number }).status = 503;
+    const generateContent = vi.fn<AiGenerateContent>(async () => {
+      throw error503;
+    });
+    const generateContentFallback = vi.fn<AiGenerateContent>(async () => ({
+      text: "Fallback with context",
+    }));
+
+    const result = await generateAiResponse(
+      {
+        ...REQUEST,
+        context: "Important context here",
+        attachments: [
+          {
+            name: "chart.png",
+            size: pngBytes.length,
+            type: "image/png",
+            data: pngBytes.toString("base64"),
+          },
+        ],
+      },
+      { generateContent, generateContentFallback },
+    );
+
+    expect(result).toBe("Fallback with context");
+    expect(generateContentFallback).toHaveBeenCalledTimes(1);
+    const fallbackInput = generateContentFallback.mock.calls[0]?.[0];
+    expect(fallbackInput?.contents.length).toBeGreaterThan(1);
+    const joinedText = textOf(fallbackInput).toLowerCase();
+    expect(joinedText).toContain("important context here");
+  });
 });
