@@ -1,13 +1,5 @@
 import { useState } from "react";
-import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUpRight,
-  BriefcaseBusiness,
-  Check,
-  Clock3,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, ArrowUpRight, BriefcaseBusiness, Check, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -103,12 +95,6 @@ export function BusinessAssistant() {
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 What are we working on today?
               </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Clock3 aria-hidden="true" className="size-4" />
-              <span>Start with a request</span>
-              <ArrowDown aria-hidden="true" className="size-3.5" />
-              <span className="hidden sm:inline">Review your draft</span>
             </div>
           </div>
         </section>
